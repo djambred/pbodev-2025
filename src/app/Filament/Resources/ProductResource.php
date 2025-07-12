@@ -1,19 +1,22 @@
 <?php
 
-namespace App\Filament\Admin\Resources;
+namespace App\Filament\Resources;
 
-use App\Filament\Admin\Resources\ProductResource\Pages;
-use App\Filament\Admin\Resources\ProductResource\Pages\EditProduct;
-use App\Filament\Admin\Resources\ProductResource\RelationManagers;
+use App\Filament\Resources\ProductResource\Pages;
+use App\Filament\Resources\ProductResource\Pages\EditProduct;
+use App\Filament\Resources\ProductResource\RelationManagers;
 use App\Models\Client;
 use App\Models\Product;
+use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Auth;
 use Spatie\Permission\Models\Role;
 
 class ProductResource extends Resource
@@ -22,21 +25,57 @@ class ProductResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->where('client_id', Auth::user()?->client?->id);
+    }
+
+    public function canAccessPanel(): bool
+    {
+        return Auth::check() && Auth::user()->hasRole('client');
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return Auth::check() && Auth::user()->hasRole('client');
+    }
+
+    public static function canViewAny(): bool
+    {
+        return Auth::check() && Auth::user()->hasRole('client');
+    }
+
+    public static function canCreate(): bool
+    {
+        return Auth::check() && Auth::user()->hasRole('client');
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return Auth::check() && Auth::user()->hasRole('client');
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return Auth::check() && Auth::user()->hasRole('client');
+    }
+
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\Select::make('client_id')
-                    ->label('Client Name')
-                    ->options(
-                        Client::with('user')
-                            ->get()
-                            ->mapWithKeys(fn($client) => [
-                                $client->id => $client->user?->name ?? 'No User'
-                            ])
-                    )
-                    ->disabled(fn($livewire) => $livewire instanceof EditProduct)
-                    ->required(),
+                // Forms\Components\Select::make('client_id')
+                //     ->label('Client Name')
+                //     ->options(
+                //         Client::with('user')
+                //             ->get()
+                //             ->mapWithKeys(fn($client) => [
+                //                 $client->id => $client->user?->name ?? 'No User'
+                //             ])
+                //     )
+                //     ->disabled(fn($livewire) => $livewire instanceof EditProduct)
+                //     ->required(),
+
                 Forms\Components\TextInput::make('name')
                     ->required()
                     ->maxLength(255),
@@ -76,7 +115,7 @@ class ProductResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
                 ]),
             ]);
     }
